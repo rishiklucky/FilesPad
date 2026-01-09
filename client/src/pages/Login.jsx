@@ -76,8 +76,9 @@ const Login = () => {
                         </div>
 
                         <Button
-                            variant="outline-light"
-                            className="w-100 btn-custom py-2"
+                            // variant="outline-light"
+                            variant="primary"
+                            className="w-100 btn-custom py-2 fw-bold"
                             onClick={handleCreate}
                         >
                             Create Space '{code || '...'}'

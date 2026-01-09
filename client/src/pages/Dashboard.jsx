@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Button, Form, Spinner, Badge, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Button, Form, Spinner, Badge, Modal, Dropdown } from 'react-bootstrap';
 import { FaCloudUploadAlt, FaFile, FaTrash, FaQrcode, FaCopy, FaSignOutAlt, FaEye } from 'react-icons/fa';
 import { getFiles, uploadFile, deleteFile } from '../services/api';
 
@@ -89,7 +89,9 @@ const Dashboard = () => {
         <Container className="py-4">
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-5">
-                <h2 className="fw-bold m-0">FilesPad <span className="text-primary">Space</span></h2>
+                <div className="glass-card px-4 py-2">
+                    <h2 className="fw-bold m-0">FilesPad <span className="text-primary">Space</span></h2>
+                </div>
                 <div className="d-flex align-items-center gap-3">
                     <div className="glass-card py-2 px-3 fw-bold text-warning">
                         CODE: {spaceCode}
@@ -101,7 +103,7 @@ const Dashboard = () => {
             </div>
 
             {/* Upload Section */}
-            <div className="glass-card mb-5 text-center p-5">
+            <div className="glass-card mb-5 text-center p-5" style={{ position: 'relative', zIndex: 100 }}>
                 <input
                     type="file"
                     id="file-upload"
@@ -123,16 +125,29 @@ const Dashboard = () => {
 
                 <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
                     <label className="text-secondary">Auto-delete in:</label>
-                    <Form.Select
-                        value={duration}
-                        onChange={(e) => setDuration(e.target.value)}
-                        style={{ width: 'auto' }}
-                        disabled={uploading}
-                    >
-                        {[1, 2, 3, 4, 5, 6, 7].map(d => (
-                            <option key={d} value={d}>{d} Day{d > 1 ? 's' : ''}</option>
-                        ))}
-                    </Form.Select>
+                    <Dropdown onSelect={(k) => setDuration(k)}>
+                        <Dropdown.Toggle
+                            variant="light"
+                            id="duration-dropdown"
+                            disabled={uploading}
+                            className="text-start d-flex align-items-center gap-2"
+                        >
+                            {duration} Day{duration > 1 ? 's' : ''}
+                        </Dropdown.Toggle>
+
+                        <Dropdown.Menu className="p-0 overflow-hidden" style={{ border: '2px solid black', borderRadius: '8px', minWidth: '100%', zIndex: 1050 }}>
+                            {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                                <Dropdown.Item
+                                    key={d}
+                                    eventKey={d}
+                                    active={d.toString() === duration.toString()}
+                                    className="fw-bold"
+                                >
+                                    {d} Day{d > 1 ? 's' : ''}
+                                </Dropdown.Item>
+                            ))}
+                        </Dropdown.Menu>
+                    </Dropdown>
                 </div>
             </div>
 
