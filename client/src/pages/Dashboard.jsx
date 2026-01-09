@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Form, Spinner, Badge, Modal } from 'react-bootstrap';
-import { FaCloudUploadAlt, FaFile, FaTrash, FaQrcode, FaCopy, FaSignOutAlt } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaFile, FaTrash, FaQrcode, FaCopy, FaSignOutAlt, FaEye } from 'react-icons/fa';
 import { getFiles, uploadFile, deleteFile } from '../services/api';
 
 const Dashboard = () => {
@@ -75,6 +75,14 @@ const Dashboard = () => {
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
         alert('Link copied!');
+    };
+
+    const handleShowQr = (file) => {
+        setLastUploaded({
+            link: file.downloadUrl,
+            qrCode: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(file.downloadUrl)}`
+        });
+        setShowQrModal(true);
     };
 
     return (
@@ -153,10 +161,16 @@ const Dashboard = () => {
                                 </div>
 
                                 <div className="mt-auto d-flex gap-2">
-                                    <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm btn-custom flex-grow-1">
+                                    <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm btn-custom flex-grow-1" title="Download">
                                         Download
                                     </a>
-                                    <Button variant="danger" size="sm" onClick={() => handleDelete(file._id)} className="btn-custom">
+                                    <Button variant="info" size="sm" onClick={() => window.open(file.downloadUrl, '_blank')} className="btn-custom text-white" title="Preview">
+                                        <FaEye />
+                                    </Button>
+                                    <Button variant="light" size="sm" onClick={() => handleShowQr(file)} className="btn-custom" title="QR Code">
+                                        <FaQrcode />
+                                    </Button>
+                                    <Button variant="danger" size="sm" onClick={() => handleDelete(file._id)} className="btn-custom" title="Delete">
                                         <FaTrash />
                                     </Button>
                                 </div>
@@ -174,7 +188,7 @@ const Dashboard = () => {
             {/* QR Code Modal */}
             <Modal show={showQrModal} onHide={() => setShowQrModal(false)} centered contentClassName="glass-card border-0">
                 <Modal.Header closeButton closeVariant="white" className="border-secondary border-opacity-25">
-                    <Modal.Title>File Uploaded!</Modal.Title>
+                    <Modal.Title>Share File</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="text-center">
                     {lastUploaded && (
