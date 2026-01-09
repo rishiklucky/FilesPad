@@ -1,0 +1,204 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Button, Form, Spinner, Badge, Modal } from 'react-bootstrap';
+import { FaCloudUploadAlt, FaFile, FaTrash, FaQrcode, FaCopy, FaSignOutAlt } from 'react-icons/fa';
+import { getFiles, uploadFile, deleteFile } from '../services/api';
+
+const Dashboard = () => {
+    const [files, setFiles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const [duration, setDuration] = useState('1');
+    const [showQrModal, setShowQrModal] = useState(false);
+    const [lastUploaded, setLastUploaded] = useState(null);
+
+    const navigate = useNavigate();
+    const spaceCode = localStorage.getItem('spaceCode');
+
+    useEffect(() => {
+        if (!spaceCode) {
+            navigate('/');
+            return;
+        }
+        fetchFiles();
+    }, [spaceCode, navigate]);
+
+    const fetchFiles = async () => {
+        try {
+            const res = await getFiles(spaceCode);
+            setFiles(res.data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('spaceCode', spaceCode);
+        formData.append('duration', duration);
+
+        setUploading(true);
+        try {
+            const res = await uploadFile(formData);
+            setLastUploaded(res.data);
+            setShowQrModal(true);
+            fetchFiles();
+        } catch (err) {
+            alert('Upload failed');
+        } finally {
+            setUploading(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Delete this file?')) return;
+        try {
+            await deleteFile(id);
+            setFiles(files.filter(f => f._id !== id));
+        } catch (err) {
+            alert('Delete failed');
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('spaceCode');
+        navigate('/');
+    };
+
+    const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text);
+        alert('Link copied!');
+    };
+
+    return (
+        <Container className="py-4">
+            {/* Header */}
+            <div className="d-flex justify-content-between align-items-center mb-5">
+                <h2 className="fw-bold m-0">FilesPad <span className="text-primary">Space</span></h2>
+                <div className="d-flex align-items-center gap-3">
+                    <div className="glass-card py-2 px-3 fw-bold text-warning">
+                        CODE: {spaceCode}
+                    </div>
+                    <Button variant="outline-danger" onClick={handleLogout} className="btn-custom">
+                        <FaSignOutAlt />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Upload Section */}
+            <div className="glass-card mb-5 text-center p-5">
+                <input
+                    type="file"
+                    id="file-upload"
+                    className="d-none"
+                    onChange={handleUpload}
+                    disabled={uploading}
+                />
+                <label htmlFor="file-upload" className="w-100 h-100" style={{ cursor: 'pointer' }}>
+                    <div className="d-flex flex-column align-items-center gap-3">
+                        {uploading ? (
+                            <Spinner animation="border" variant="primary" />
+                        ) : (
+                            <FaCloudUploadAlt size={64} className="text-primary mb-2" />
+                        )}
+                        <h4 className="fw-bold">{uploading ? 'Uploading...' : 'Click to Upload File'}</h4>
+                        <p className="text-secondary">Max size: 100MB</p>
+                    </div>
+                </label>
+
+                <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
+                    <label className="text-secondary">Auto-delete in:</label>
+                    <Form.Select
+                        value={duration}
+                        onChange={(e) => setDuration(e.target.value)}
+                        style={{ width: 'auto' }}
+                        disabled={uploading}
+                    >
+                        {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                            <option key={d} value={d}>{d} Day{d > 1 ? 's' : ''}</option>
+                        ))}
+                    </Form.Select>
+                </div>
+            </div>
+
+            {/* Files List */}
+            <h4 className="mb-4 text-secondary">Your Files ({files.length})</h4>
+            {loading ? (
+                <div className="text-center"><Spinner animation="border" /></div>
+            ) : (
+                <Row className="g-4">
+                    {files.map(file => (
+                        <Col key={file._id} md={6} lg={4}>
+                            <div className="file-card h-100 d-flex flex-column">
+                                <div className="d-flex align-items-start gap-3 mb-3">
+                                    <div className="p-3 bg-secondary bg-opacity-10 rounded">
+                                        <FaFile size={24} className="text-info" />
+                                    </div>
+                                    <div className="flex-grow-1 overflow-hidden">
+                                        <h6 className="text-truncate mb-1" title={file.originalName}>{file.originalName}</h6>
+                                        <small className="text-secondary d-block">
+                                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                                        </small>
+                                        <small className="text-warning" style={{ fontSize: '0.75rem' }}>
+                                            Expires: {new Date(file.expiresAt).toLocaleDateString()}
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div className="mt-auto d-flex gap-2">
+                                    <a href={file.downloadUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm btn-custom flex-grow-1">
+                                        Download
+                                    </a>
+                                    <Button variant="danger" size="sm" onClick={() => handleDelete(file._id)} className="btn-custom">
+                                        <FaTrash />
+                                    </Button>
+                                </div>
+                            </div>
+                        </Col>
+                    ))}
+                    {files.length === 0 && (
+                        <Col xs={12} className="text-center text-secondary py-5">
+                            No files yet. Upload one!
+                        </Col>
+                    )}
+                </Row>
+            )}
+
+            {/* QR Code Modal */}
+            <Modal show={showQrModal} onHide={() => setShowQrModal(false)} centered contentClassName="glass-card border-0">
+                <Modal.Header closeButton closeVariant="white" className="border-secondary border-opacity-25">
+                    <Modal.Title>File Uploaded!</Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="text-center">
+                    {lastUploaded && (
+                        <>
+                            <div className="bg-white p-3 d-inline-block rounded mb-4">
+                                <img src={lastUploaded.qrCode} alt="QR Code" className="img-fluid" style={{ maxWidth: '200px' }} />
+                            </div>
+                            <div className="input-group mb-3">
+                                <Form.Control
+                                    value={lastUploaded.link}
+                                    readOnly
+                                    className="bg-dark border-secondary text-white"
+                                />
+                                <Button variant="secondary" onClick={() => copyToClipboard(lastUploaded.link)}>
+                                    <FaCopy />
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </Modal.Body>
+            </Modal>
+
+        </Container>
+    );
+};
+
+export default Dashboard;
