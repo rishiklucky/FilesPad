@@ -162,7 +162,7 @@ const Dashboard = () => {
                             <div className="file-card h-100 d-flex flex-column">
                                 <div className="d-flex align-items-start gap-3 mb-3">
                                     <div className="p-3 bg-secondary bg-opacity-10 rounded">
-                                        <FaFile size={24} className="text-info" />
+                                        <FaFile size={24} className="text-dark" />
                                     </div>
                                     <div className="flex-grow-1 overflow-hidden">
                                         <h6 className="text-truncate mb-1" title={file.originalName}>{file.originalName}</h6>

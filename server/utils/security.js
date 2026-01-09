@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const ALGORITHM = 'aes-256-cbc';
-const SECRET_KEY = process.env.SECURITY_KEY || 'default_secret_key_change_me_now!!';
+const SECRET_KEY = process.env.SECURITY_KEY;
 
 // Create a 32-byte key from the SECRET_KEY string
 const key = crypto.createHash('sha256').update(String(SECRET_KEY)).digest('base64').substr(0, 32);
