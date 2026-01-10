@@ -20,9 +20,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         if (!file) return res.status(400).json({ message: 'No file uploaded' });
 
         // Calculate Expiration
-        const days = parseInt(duration) || 1;
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + days);
+        const days = parseFloat(duration) || 1;
+        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
         // Create File Object
         const newFile = new File({

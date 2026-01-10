@@ -53,15 +53,16 @@ if (fs.existsSync(clientDistPath)) {
 }
 
 // Cleanup Job (Runs every hour)
-cron.schedule('0 * * * *', async () => {
-    console.log('Running cleanup job...');
+// Cleanup Job (Runs every minute)
+cron.schedule('* * * * *', async () => {
     const now = new Date();
     try {
         const expiredFiles = await File.find({ expiresAt: { $lt: now } });
-        for (const file of expiredFiles) {
-            // Delete from DB (No FS to clean up)
-            await File.findByIdAndDelete(file._id);
-            console.log(`Deleted expired file: ${file.originalName}`);
+        if (expiredFiles.length > 0) {
+            for (const file of expiredFiles) {
+                await File.findByIdAndDelete(file._id);
+                console.log(`[Auto-Delete] Deleted expired file: ${file.originalName}`);
+            }
         }
     } catch (err) {
         console.error('Cleanup error:', err);

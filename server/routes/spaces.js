@@ -41,4 +41,35 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// Get TextPad content
+router.get('/:code/textpad', async (req, res) => {
+    try {
+        const { code } = req.params;
+        const hashedCode = hash(code);
+        const space = await Space.findOne({ code: hashedCode });
+        if (!space) return res.status(404).json({ message: 'Space not found' });
+        res.json({ content: space.textPadContent || '' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Update TextPad content
+router.put('/:code/textpad', async (req, res) => {
+    try {
+        const { code } = req.params;
+        const { content } = req.body;
+        const hashedCode = hash(code);
+        const space = await Space.findOneAndUpdate(
+            { code: hashedCode },
+            { textPadContent: content },
+            { new: true }
+        );
+        if (!space) return res.status(404).json({ message: 'Space not found' });
+        res.json({ message: 'TextPad updated', content: space.textPadContent });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 export default router;

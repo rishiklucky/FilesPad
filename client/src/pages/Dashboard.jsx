@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Form, Spinner, Badge, Modal, Dropdown } from 'react-bootstrap';
-import { FaCloudUploadAlt, FaFile, FaTrash, FaQrcode, FaCopy, FaSignOutAlt, FaEye } from 'react-icons/fa';
-import { getFiles, uploadFile, deleteFile } from '../services/api';
+import { FaCloudUploadAlt, FaFile, FaTrash, FaQrcode, FaCopy, FaSignOutAlt, FaEye, FaEdit, FaSync, FaSave, FaTimes } from 'react-icons/fa';
+import { getFiles, uploadFile, deleteFile, getTextPad, updateTextPad } from '../services/api';
 
 const Dashboard = () => {
     const [files, setFiles] = useState([]);
@@ -11,6 +11,12 @@ const Dashboard = () => {
     const [duration, setDuration] = useState('1');
     const [showQrModal, setShowQrModal] = useState(false);
     const [lastUploaded, setLastUploaded] = useState(null);
+
+    // TextPad State
+    const [showTextPad, setShowTextPad] = useState(false);
+    const [textPadContent, setTextPadContent] = useState('');
+    const [textPadLoading, setTextPadLoading] = useState(false);
+    const [textPadSaving, setTextPadSaving] = useState(false);
 
     const navigate = useNavigate();
     const spaceCode = localStorage.getItem('spaceCode');
@@ -85,14 +91,51 @@ const Dashboard = () => {
         setShowQrModal(true);
     };
 
+    // TextPad Functions
+    const fetchTextPad = async () => {
+        setTextPadLoading(true);
+        try {
+            const res = await getTextPad(spaceCode);
+            setTextPadContent(res.data.content);
+        } catch (err) {
+            console.error('Failed to fetch TextPad', err);
+        } finally {
+            setTextPadLoading(false);
+        }
+    };
+
+    const handleSaveTextPad = async (shouldClose = false) => {
+        setTextPadSaving(true);
+        try {
+            await updateTextPad(spaceCode, textPadContent);
+            if (shouldClose) {
+                setShowTextPad(false);
+            } else {
+                alert('TextPad saved!');
+            }
+        } catch (err) {
+            alert('Failed to save TextPad');
+        } finally {
+            setTextPadSaving(false);
+        }
+    };
+
+    const openTextPad = () => {
+        setShowTextPad(true);
+        fetchTextPad();
+    };
+
     return (
         <Container className="py-4">
             {/* Header */}
-            <div className="d-flex justify-content-between align-items-center mb-5">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mb-5">
                 <div className="glass-card px-4 py-2">
                     <h2 className="fw-bold m-0">FilesPad <span className="text-primary">Space</span></h2>
                 </div>
-                <div className="d-flex align-items-center gap-3">
+                <div className="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-md-3">
+                    <Button variant="outline-dark" onClick={openTextPad} className="glass-card py-2 px-3 btn-custom d-flex align-items-center gap-2">
+                        <FaEdit /> TextPad
+                    </Button>
                     <div className="glass-card py-2 px-3 fw-bold text-warning">
                         CODE: {spaceCode}
                     </div>
@@ -224,6 +267,51 @@ const Dashboard = () => {
                         </>
                     )}
                 </Modal.Body>
+            </Modal>
+
+            {/* TextPad Modal */}
+            <Modal show={showTextPad} onHide={() => setShowTextPad(false)} size="lg" centered contentClassName="glass-card border-0">
+                <Modal.Header closeButton closeVariant="white" className="border-secondary border-opacity-25">
+                    <Modal.Title className="d-flex align-items-center">
+                        <FaEdit className="me-2 text-primary" /> TextPad
+                    </Modal.Title>
+                    <div className="ms-auto me-3">
+                        <Button variant="outline-light" size="sm" onClick={fetchTextPad} disabled={textPadLoading} className="btn-custom py-1">
+                            <FaSync className={textPadLoading ? 'fa-spin' : ''} /> Refresh
+                        </Button>
+                    </div>
+                </Modal.Header>
+                <Modal.Body>
+                    {textPadLoading ? (
+                        <div className="text-center py-5">
+                            <Spinner animation="border" variant="primary" />
+                            <p className="mt-2 text-secondary">Loading content...</p>
+                        </div>
+                    ) : (
+                        <Form.Control
+                            as="textarea"
+                            rows={12}
+                            placeholder="Paste or type your text here..."
+                            value={textPadContent}
+                            onChange={(e) => setTextPadContent(e.target.value)}
+                            className="bg-dark text-white border-secondary border-opacity-50"
+                            style={{ resize: 'none' }}
+                        />
+                    )}
+                </Modal.Body>
+                <Modal.Footer className="border-secondary border-opacity-25 justify-content-between">
+                    <Button variant="outline-danger" onClick={() => setShowTextPad(false)} className="btn-custom">
+                        <FaTimes className="me-2" /> Close
+                    </Button>
+                    <div className="d-flex gap-2">
+                        <Button variant="success" onClick={() => handleSaveTextPad(false)} disabled={textPadSaving} className="btn-custom">
+                            <FaSave className="me-2" /> {textPadSaving ? 'Saving...' : 'Save'}
+                        </Button>
+                        <Button variant="primary" onClick={() => handleSaveTextPad(true)} disabled={textPadSaving} className="btn-custom">
+                            <FaSave className="me-2" /> Save & Close
+                        </Button>
+                    </div>
+                </Modal.Footer>
             </Modal>
 
         </Container>

@@ -11,5 +11,7 @@ export const uploadFile = (formData) => API.post('/files/upload', formData, {
 });
 export const getFiles = (spaceCode) => API.get(`/files/${spaceCode}`);
 export const deleteFile = (id) => API.delete(`/files/${id}`);
+export const getTextPad = (spaceCode) => API.get(`/spaces/${spaceCode}/textpad`);
+export const updateTextPad = (spaceCode, content) => API.put(`/spaces/${spaceCode}/textpad`, { content });
 
 export default API;
