@@ -1,6 +1,6 @@
 import express from 'express';
 import Space from '../models/Space.js';
-import { hash } from '../utils/security.js';
+import { hash, encrypt, decrypt } from '../utils/security.js';
 
 const router = express.Router();
 
@@ -48,7 +48,17 @@ router.get('/:code/textpad', async (req, res) => {
         const hashedCode = hash(code);
         const space = await Space.findOne({ code: hashedCode });
         if (!space) return res.status(404).json({ message: 'Space not found' });
-        res.json({ content: space.textPadContent || '' });
+
+        let content = '';
+        if (space.textPadContent) {
+            try {
+                content = decrypt(space.textPadContent);
+            } catch (err) {
+                // If decryption fails, it might be old plain text
+                content = space.textPadContent;
+            }
+        }
+        res.json({ content });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -60,13 +70,14 @@ router.put('/:code/textpad', async (req, res) => {
         const { code } = req.params;
         const { content } = req.body;
         const hashedCode = hash(code);
+        const encryptedContent = content ? encrypt(content) : '';
         const space = await Space.findOneAndUpdate(
             { code: hashedCode },
-            { textPadContent: content },
+            { textPadContent: encryptedContent },
             { new: true }
         );
         if (!space) return res.status(404).json({ message: 'Space not found' });
-        res.json({ message: 'TextPad updated', content: space.textPadContent });
+        res.json({ message: 'TextPad updated', content: content });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
