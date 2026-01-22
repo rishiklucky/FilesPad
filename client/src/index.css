@@ -201,3 +201,15 @@ h6 {
   color: #ffffff !important;
   border: none;
 }
+
+/* Custom utility to remove focus shadow and background change */
+.shadow-none-focus:focus {
+  box-shadow: none !important;
+  outline: none !important;
+  background-color: transparent !important;
+}
+
+.no-focus-shadow:focus {
+  box-shadow: none !important;
+  outline: none !important;
+}

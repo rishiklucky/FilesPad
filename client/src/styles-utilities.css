@@ -1,0 +1,11 @@
+/* Utility class to remove focus shadow */
+.shadow-none-focus:focus {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Ensure merged input groups look connected */
+.input-group .form-control:focus {
+    z-index: 1;
+    /* Prevent overlapping modification if needed, or keep default */
+}

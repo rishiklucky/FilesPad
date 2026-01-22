@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Alert, InputGroup } from 'react-bootstrap';
 import { createSpace, loginSpace } from '../services/api';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const Login = () => {
     const [code, setCode] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const inputRef = useRef(null);
     const navigate = useNavigate();
@@ -49,15 +51,30 @@ const Login = () => {
 
                         <Form onSubmit={handleLogin} className="mb-4">
                             <Form.Group className="mb-3">
-                                <Form.Control
-                                    ref={inputRef}
-                                    type="text"
-                                    placeholder="Enter Space Name"
-                                    value={code}
-                                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                                    className="text-center fw-bold fs-5"
-                                    maxLength={20}
-                                />
+                                <InputGroup>
+                                    <Form.Control
+                                        ref={inputRef}
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Enter Space Name"
+                                        value={code}
+                                        onChange={(e) => setCode(e.target.value.toUpperCase())}
+                                        className="bg-transparent text-center fw-bold fs-5 shadow-none-focus"
+                                        maxLength={20}
+                                        style={{ borderRight: 'none' }}
+                                        autoComplete="off"
+                                    />
+                                    <InputGroup.Text
+                                        className="bg-transparent border-start-0"
+                                        style={{
+                                            cursor: 'pointer',
+                                            border: '3px solid #000000',
+                                            borderLeft: 'none'
+                                        }}
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+                                    </InputGroup.Text>
+                                </InputGroup>
                             </Form.Group>
                             <Button
                                 variant="primary"
@@ -81,7 +98,7 @@ const Login = () => {
                             className="w-100 btn-custom py-2 fw-bold"
                             onClick={handleCreate}
                         >
-                            Create Space '{code || '...'}'
+                            Create New Space
                         </Button>
                     </div>
                 </Col>
