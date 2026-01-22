@@ -11,6 +11,7 @@ const Dashboard = () => {
     const [duration, setDuration] = useState('1');
     const [showQrModal, setShowQrModal] = useState(false);
     const [lastUploaded, setLastUploaded] = useState(null);
+    const [showSpaceCode, setShowSpaceCode] = useState(false);
 
     // TextPad State
     const [showTextPad, setShowTextPad] = useState(false);
@@ -136,8 +137,19 @@ const Dashboard = () => {
                     <Button variant="outline-dark" onClick={openTextPad} className="glass-card py-2 px-3 btn-custom d-flex align-items-center gap-2">
                         <FaEdit /> TextPad
                     </Button>
-                    <div className="glass-card py-2 px-3 fw-bold text-warning">
-                        CODE: {spaceCode}
+                    <div
+                        className="glass-card py-2 px-3 fw-bold text-warning position-relative"
+                        style={{ cursor: 'pointer', minWidth: '140px' }}
+                        onClick={() => setShowSpaceCode(!showSpaceCode)}
+                    >
+                        <div style={{ filter: showSpaceCode ? 'none' : 'blur(4px)', transition: 'filter 0.3s' }}>
+                            CODE: {spaceCode}
+                        </div>
+                        {!showSpaceCode && (
+                            <div className="position-absolute top-50 start-50 translate-middle w-100 text-center">
+                                <span className="badge text-dark" style={{ fontSize: '1rem', opacity: 0.9 }}>View Code</span>
+                            </div>
+                        )}
                     </div>
                     <Button variant="outline-danger" onClick={handleLogout} className="btn-custom">
                         <FaSignOutAlt />
