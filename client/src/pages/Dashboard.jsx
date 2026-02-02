@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+// (Existing Imports)
+import { useEffect, useState, forwardRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Form, Spinner, Badge, Modal, Dropdown } from 'react-bootstrap';
-import { FaCloudUploadAlt, FaFile, FaTrash, FaQrcode, FaCopy, FaSignOutAlt, FaEye, FaEdit, FaSync, FaSave, FaTimes } from 'react-icons/fa';
-import { getFiles, uploadFile, deleteFile, getTextPad, updateTextPad } from '../services/api';
+import { FaCloudUploadAlt, FaFile, FaTrash, FaQrcode, FaCopy, FaSignOutAlt, FaEye, FaEdit, FaSync, FaSave, FaTimes, FaEllipsisV, FaLock, FaExclamationTriangle } from 'react-icons/fa';
+import { getFiles, uploadFile, deleteFile, getTextPad, updateTextPad, enableLock, deleteSpace } from '../services/api';
 
 const Dashboard = () => {
     const [files, setFiles] = useState([]);
@@ -18,6 +19,16 @@ const Dashboard = () => {
     const [textPadContent, setTextPadContent] = useState('');
     const [textPadLoading, setTextPadLoading] = useState(false);
     const [textPadSaving, setTextPadSaving] = useState(false);
+
+    // Lock Pad State
+    const [showLockModal, setShowLockModal] = useState(false);
+    const [lockCode, setLockCode] = useState('');
+    const [confirmLockCode, setConfirmLockCode] = useState('');
+    const [lockError, setLockError] = useState('');
+
+    // Delete Space State
+    const [showDeleteSpaceModal, setShowDeleteSpaceModal] = useState(false);
+    const [deleteSpaceLoading, setDeleteSpaceLoading] = useState(false);
 
     const navigate = useNavigate();
     const spaceCode = localStorage.getItem('spaceCode');
@@ -126,6 +137,44 @@ const Dashboard = () => {
         fetchTextPad();
     };
 
+    // Lock Pad Functions
+    const handleEnableLock = async () => {
+        setLockError('');
+        if (!lockCode || lockCode.length < 4) {
+            setLockError('Code must be at least 4 characters');
+            return;
+        }
+        if (lockCode !== confirmLockCode) {
+            setLockError('Codes do not match');
+            return;
+        }
+
+        try {
+            await enableLock(spaceCode, lockCode);
+            alert('Lock Pad enabled! You will need this code to enter next time.');
+            setShowLockModal(false);
+            setLockCode('');
+            setConfirmLockCode('');
+        } catch (err) {
+            setLockError(err.response?.data?.message || 'Failed to enable lock');
+        }
+    };
+
+    // Delete Space Function
+    const handleDeleteSpace = async () => {
+        setDeleteSpaceLoading(true);
+        try {
+            await deleteSpace(spaceCode);
+            localStorage.removeItem('spaceCode');
+            navigate('/');
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to delete space');
+        } finally {
+            setDeleteSpaceLoading(false);
+            setShowDeleteSpaceModal(false);
+        }
+    };
+
     return (
         <Container className="py-4">
             {/* Header */}
@@ -151,9 +200,26 @@ const Dashboard = () => {
                             </div>
                         )}
                     </div>
-                    <Button variant="outline-danger" onClick={handleLogout} className="btn-custom">
-                        <FaSignOutAlt />
-                    </Button>
+
+                    {/* Menu Dropdown */}
+                    <Dropdown>
+                        <Dropdown.Toggle as={CustomToggle} id="dropdown-custom-components">
+                            <FaEllipsisV size={20} />
+                        </Dropdown.Toggle>
+
+                        <Dropdown.Menu className="glass-card border-0 shadow">
+                            <Dropdown.Item onClick={() => setShowLockModal(true)} className="d-flex align-items-center gap-2 py-2">
+                                <FaLock /> Enable Lock Pad
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={() => setShowDeleteSpaceModal(true)} className="text-danger d-flex align-items-center gap-2 py-2">
+                                <FaTrash /> Delete Space
+                            </Dropdown.Item>
+                            <Dropdown.Divider />
+                            <Dropdown.Item onClick={handleLogout} className="text-danger d-flex align-items-center gap-2 py-2">
+                                <FaSignOutAlt /> Logout
+                            </Dropdown.Item>
+                        </Dropdown.Menu>
+                    </Dropdown>
                 </div>
             </div>
 
@@ -326,8 +392,100 @@ const Dashboard = () => {
                 </Modal.Footer>
             </Modal>
 
+            {/* Lock Pad Modal */}
+            <Modal show={showLockModal} onHide={() => setShowLockModal(false)} centered contentClassName="glass-card border-0">
+                <Modal.Header closeButton closeVariant="white" className="border-secondary border-opacity-25">
+                    <Modal.Title className="d-flex align-items-center">
+                        <FaLock className="me-2 text-danger" /> Enable Lock Pad
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p className="text-secondary small">
+                        Secure your space with a secondary code. You will need to enter this code every time you access this space.
+                    </p>
+                    <Form>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-bold">New Lock Code</Form.Label>
+                            <Form.Control
+                                type="password"
+                                placeholder="Enter lock code"
+                                value={lockCode}
+                                onChange={(e) => setLockCode(e.target.value)}
+                                className="bg-transparent border-dark"
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label className="fw-bold">Confirm Lock Code</Form.Label>
+                            <Form.Control
+                                type="password"
+                                placeholder="Confirm lock code"
+                                value={confirmLockCode}
+                                onChange={(e) => setConfirmLockCode(e.target.value)}
+                                className="bg-transparent border-dark"
+                            />
+                        </Form.Group>
+                        {lockError && <p className="text-danger small">{lockError}</p>}
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer className="border-secondary border-opacity-25">
+                    <Button variant="secondary" onClick={() => setShowLockModal(false)} className="btn-custom">Cancel</Button>
+                    <Button variant="danger" onClick={handleEnableLock} className="btn-custom">Enable Lock</Button>
+                </Modal.Footer>
+            </Modal>
+
+            {/* Delete Space Modal */}
+            <Modal show={showDeleteSpaceModal} onHide={() => setShowDeleteSpaceModal(false)} centered contentClassName="glass-card border-0">
+                <Modal.Header closeButton closeVariant="white" className="border-secondary border-opacity-25">
+                    <Modal.Title className="d-flex align-items-center text-danger">
+                        <FaExclamationTriangle className="me-2" /> Danger Zone
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="text-center">
+                    <p className="fw-bold fs-5 mb-2">Delete this Space?</p>
+                    <p className="mb-4">
+                        This action CANNOT be undone. All files, textpad content, and the space itself will be permanently deleted.
+                    </p>
+                </Modal.Body>
+                <Modal.Footer className="border-secondary border-opacity-25 justify-content-between">
+                    <Button variant="outline-dark" onClick={() => setShowDeleteSpaceModal(false)} className="btn-custom">
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="danger"
+                        onClick={handleDeleteSpace}
+                        className="btn-custom fw-bold"
+                        disabled={deleteSpaceLoading}
+                    >
+                        {deleteSpaceLoading ? (
+                            <>
+                                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                                Deleting...
+                            </>
+                        ) : (
+                            <>
+                                <FaTrash className="me-2" /> Delete Forever
+                            </>
+                        )}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </Container>
     );
 };
+
+// Custom Toggle for Dropdown
+const CustomToggle = forwardRef(({ children, onClick }, ref) => (
+    <Button
+        ref={ref}
+        variant="outline-dark"
+        className="glass-card py-2 px-3 btn-custom"
+        onClick={(e) => {
+            e.preventDefault();
+            onClick(e);
+        }}
+    >
+        {children}
+    </Button>
+));
 
 export default Dashboard;
