@@ -23,10 +23,15 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         const days = parseFloat(duration) || 1;
         const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
+        // Encrypt sensitive names
+        const virtualFilename = Date.now() + '-' + file.originalname;
+        const encryptedFilename = encrypt(virtualFilename);
+        const encryptedOriginalName = encrypt(file.originalname);
+
         // Create File Object
         const newFile = new File({
-            filename: Date.now() + '-' + file.originalname, // Virtual filename
-            originalName: file.originalname,
+            filename: encryptedFilename,
+            originalName: encryptedOriginalName,
             data: file.buffer,
             size: file.size,
             mimetype: file.mimetype,
@@ -39,15 +44,16 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         // Generate download URL
         const fileUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/api/files/download/${savedFile._id}`;
 
-        // Generate Share Link & QR
-        // Link points to the download route
-
         // QR Code
         const qrCodeDataUrl = await QRCode.toDataURL(fileUrl);
 
         res.status(201).json({
             message: 'File uploaded',
-            file: newFile,
+            file: {
+                ...newFile.toObject(),
+                originalName: file.originalname, // Return decrypted name for immediate UI update
+                filename: virtualFilename
+            },
             link: fileUrl,
             qrCode: qrCodeDataUrl
         });
@@ -62,21 +68,30 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 router.get('/:spaceCode', async (req, res) => {
     try {
         const hashedSpaceCode = hash(req.params.spaceCode);
-        const files = await File.find({ spaceCode: hashedSpaceCode }).lean();
+        const files = await File.find({ spaceCode: hashedSpaceCode }).select('-data').lean(); // Exclude data buffer for performance
 
-        // Decrypt paths for usage
+        const mappedFiles = files.map(file => {
+            let originalName = file.originalName;
+            let filename = file.filename;
 
-        // Decrypt paths for usage (Path is no longer used, but keeping structure consistent)
-        const mappedFiles = files.map(file => ({
-            _id: file._id,
-            filename: file.filename,
-            originalName: file.originalName,
-            size: file.size,
-            mimetype: file.mimetype,
-            expiresAt: file.expiresAt,
-            // Don't send the data buffer to reading list, it's too heavy
-            downloadUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/api/files/download/${file._id}`
-        }));
+            // Try to decrypt
+            try {
+                originalName = decrypt(file.originalName);
+                filename = decrypt(file.filename);
+            } catch (e) {
+                // If decryption fails, it might be legacy unencrypted data
+            }
+
+            return {
+                _id: file._id,
+                filename: filename,
+                originalName: originalName,
+                size: file.size,
+                mimetype: file.mimetype,
+                expiresAt: file.expiresAt,
+                downloadUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/api/files/download/${file._id}`
+            };
+        });
 
         res.json(mappedFiles);
     } catch (err) {
@@ -90,8 +105,15 @@ router.get('/download/:id', async (req, res) => {
         const file = await File.findById(req.params.id);
         if (!file) return res.status(404).json({ message: 'File not found' });
 
+        let originalName = file.originalName;
+        try {
+            originalName = decrypt(file.originalName);
+        } catch (e) {
+            // Ignore if not encrypted
+        }
+
         res.set('Content-Type', file.mimetype);
-        res.set('Content-Disposition', `inline; filename="${file.originalName}"`); // or attachment
+        res.set('Content-Disposition', `inline; filename="${originalName}"`);
         res.send(file.data);
 
     } catch (err) {
@@ -106,7 +128,6 @@ router.delete('/:id', async (req, res) => {
         if (!file) return res.status(404).json({ message: 'File not found' });
 
         await File.findByIdAndDelete(req.params.id);
-        // No file system cleanup needed
 
         res.json({ message: 'File deleted' });
     } catch (err) {
