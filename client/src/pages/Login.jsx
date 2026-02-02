@@ -42,7 +42,7 @@ const Login = () => {
     return (
         <Container className="d-flex align-items-center justify-content-center flex-grow-1">
             <Row className="w-100 justify-content-center">
-                <Col md={6} lg={4}>
+                <Col md={8} lg={6} xl={4}>
                     <div className="glass-card text-center">
                         <h1 className="mb-4 fw-bold">FilesPad</h1>
                         <p className="text-secondary mb-4">Secure, temporary file sharing.</p>
@@ -58,7 +58,7 @@ const Login = () => {
                                         placeholder="Enter Space Name"
                                         value={code}
                                         onChange={(e) => setCode(e.target.value.toUpperCase())}
-                                        className="bg-transparent text-center fw-bold fs-5 shadow-none-focus"
+                                        className="bg-transparent text-center fw-bold fs-5 shadow-none-focus custom-placeholder"
                                         maxLength={20}
                                         style={{ borderRight: 'none' }}
                                         autoComplete="off"

@@ -1,4 +1,8 @@
 /* Utility class to remove focus shadow */
+.custom-placeholder::placeholder {
+    font-size: 14px;
+}
+
 .shadow-none-focus:focus {
     box-shadow: none !important;
     outline: none !important;
